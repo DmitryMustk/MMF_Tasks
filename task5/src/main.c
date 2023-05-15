@@ -1,12 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <limits.h>
 
 #define MAX_VERTICES 5000
 #define INFINITY INT_MAX
-
-int visited[MAX_VERTICES];
-int graph[MAX_VERTICES][MAX_VERTICES];
-int minCycleLength;
 
 typedef enum error_code {
     no_error = 0,
@@ -17,32 +14,45 @@ typedef enum error_code {
     bad_vertex,
 } error_code;
 
-void initializeGraph() {
+typedef struct {
+    int** graph;
+    int* visited;
+    int minCycleLength;
+    int numVertices;
+    int numEdges;
+} graph_t;
+
+void initializeGraph(graph_t* graph, int numVertices) {
     int i, j;
-    for (i = 0; i < MAX_VERTICES; i++) {
-        visited[i] = 0;
-        for (j = 0; j < MAX_VERTICES; j++) {
-            graph[i][j] = 0;
+    graph->visited = (int*)malloc(numVertices * sizeof(int));
+    graph->graph = (int**)malloc(numVertices * sizeof(int*));
+
+    for (i = 0; i < numVertices; i++) {
+        graph->visited[i] = 0;
+        graph->graph[i] = (int*)malloc(numVertices * sizeof(int));
+
+        for (j = 0; j < numVertices; j++) {
+            graph->graph[i][j] = 0;
         }
     }
 }
 
-void addEdge(int u, int v) {
-    graph[u][v] = 1;
-    graph[v][u] = 1;
+void addEdge(graph_t* graph, int u, int v) {
+    graph->graph[u][v] = 1;
+    graph->graph[v][u] = 1;
 }
 
-void DFS(int v, int parent, int startVertex, int depth) {
-    visited[v] = 1;
+void DFS(graph_t* graph, int v, int parent, int startVertex, int depth) {
+    graph->visited[v] = 1;
 
     int i;
-    for (i = 0; i < MAX_VERTICES; i++) {
-        if (graph[v][i]) {
-            if (!visited[i]) {
-                DFS(i, v, startVertex, depth + 1);
+    for (i = 0; i < graph->numVertices; i++) {
+        if (graph->graph[v][i]) {
+            if (!graph->visited[i]) {
+                DFS(graph, i, v, startVertex, depth + 1);
             } else if (i != parent && i == startVertex) {
-                if (depth + 1 < minCycleLength) {
-                    minCycleLength = depth + 1;
+                if (depth + 1 < graph->minCycleLength) {
+                    graph->minCycleLength = depth + 1;
                 }
                 return;
             }
@@ -50,61 +60,63 @@ void DFS(int v, int parent, int startVertex, int depth) {
     }
 }
 
-int findShortestCycle(int numVertices) {
+int findShortestCycle(graph_t* graph, int numVertices) {
     int i;
-    minCycleLength = INFINITY;
+    graph->minCycleLength = INFINITY;
 
     for (i = 0; i < numVertices; i++) {
-        if (!visited[i]) {
-            DFS(i, -1, i, 0);
+        if (!graph->visited[i]) {
+            DFS(graph, i, -1, i, 0);
         }
     }
 
-    if (minCycleLength != INFINITY) {
-        return minCycleLength;
+    if (graph->minCycleLength != INFINITY) {
+        return graph->minCycleLength;
     } else {
         return -1;  // No cycle found
     }
 }
 
-int readInput(int* numVertices, int* numEdges, const char* in_stream) {
+int readInput(graph_t* graph, const char* in_stream) {
     FILE* fp = fopen(in_stream, "r");
-    if(!fp)
+    if (!fp)
         return other_error;
-    if (fscanf(fp, "%d", numVertices) != 1) {
+    if (fscanf(fp, "%d", &graph->numVertices) != 1) {
         fclose(fp);
         return bad_number_of_lines;
     }
-    if (*numVertices < 0 || *numVertices > MAX_VERTICES) {
+    if (graph->numVertices < 0 || graph->numVertices > MAX_VERTICES) {
         fclose(fp);
         return bad_number_of_vertices;
     }
-    if (fscanf(fp, "%d", numEdges) != 1) {
+    if (fscanf(fp, "%d", &graph->numEdges) != 1) {
         fclose(fp);
         return bad_number_of_lines;
     }
-    if (*numEdges < 0 || *numEdges > *numVertices * (*numVertices - 1) / 2) {
+    if (graph->numEdges < 0 || graph->numEdges > graph->numVertices * (graph->numVertices - 1) / 2) {
         fclose(fp);
         return bad_number_of_edges;
     }
+    initializeGraph(graph, graph->numVertices);
+
     int from, to;
-    for (int i = 0; i < *numEdges; ++i) {
+    for (int i = 0; i < graph->numEdges; ++i) {
         if (fscanf(fp, "%d %d", &from, &to) != 2) {
             fclose(fp);
             return bad_number_of_lines;
         }
-        if (from < 0 || to < 0 || from > *numVertices || to > *numVertices) {
+        if (from < 0 || to < 0 || from > graph->numVertices || to > graph->numVertices) {
             fclose(fp);
             return bad_vertex;
         }
-        addEdge(from, to);
+        addEdge(graph, from, to);
     }
     fclose(fp);
     return no_error;
 }
 
-int printError(error_code error, const char *out_stream) {
-    FILE *fp = fopen(out_stream, "w");
+int printError(error_code error, const char* out_stream) {
+    FILE* fp = fopen(out_stream, "w");
     if (!fp)
         return other_error;
     if (error == bad_number_of_lines) {
@@ -123,18 +135,26 @@ int printError(error_code error, const char *out_stream) {
     return no_error;
 }
 
-
-int main() {
-    int numVertices, numEdges;
-    const char* in_stream = "in.txt", *out_stream = "out.txt";
-    initializeGraph();
-
-    error_code error = readInput(&numVertices, &numEdges, in_stream);
-    if(error != no_error){
+int main(void) {
+    //TODO: 1)add destroy_func
+    //TODO: 2)make foundCycleLength void
+    //TODO: 3)rename graph field to matrix
+    //TODO: 4)make 4-5 tescases
+    //TODO: 5)add malloc check
+    //TODO: 6)fix memory leak
+    //TODO: 7)add print res func
+    //TODO: 8)replace args to struct fields
+    //TODO: 9)add consts
+    //TODO: 10)sort includes
+    const char *in_stream = "in.txt", *out_stream = "out.txt";
+    graph_t graph;
+    error_code error = readInput(&graph, in_stream);
+    if (error != no_error) {
         printError(error, out_stream);
         return 0;
     }
-    int shortestCycleLength = findShortestCycle(numVertices);
+
+    int shortestCycleLength = findShortestCycle(&graph, graph.numVertices);
 
     if (shortestCycleLength == -1) {
         printf("Graph does not contain any cycles.\n");
@@ -142,5 +162,13 @@ int main() {
         printf("Length of the shortest cycle: %d\n", shortestCycleLength);
     }
 
+    // Clean up
+    for (int i = 0; i < graph.numVertices; i++) {
+        free(graph.graph[i]);
+    }
+    free(graph.graph);
+    free(graph.visited);
+
     return 0;
+
 }
