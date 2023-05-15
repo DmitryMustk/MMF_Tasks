@@ -1,11 +1,22 @@
 #include <stdio.h>
 
-#define MAX_VERTICES 100
+#define MAX_VERTICES 5000
 #define INFINITY 999999
 
 int visited[MAX_VERTICES];
 int graph[MAX_VERTICES][MAX_VERTICES];
 int minCycleLength;
+
+typedef enum error_code {
+    no_error = 0,
+    other_error,
+    bad_number_of_lines,
+    bad_number_of_vertices,
+    bad_number_of_edges,
+    bad_vertex,
+    bad_length,
+} error_code;
+
 
 void initializeGraph() {
     int i, j;
@@ -57,23 +68,79 @@ int findShortestCycle(int numVertices) {
     }
 }
 
-int main() {
-    int numVertices, numEdges, i;
-    printf("Enter the number of vertices: ");
-    scanf("%d", &numVertices);
+//int readInput(int numVertices, int numEdges, const char *in_stream) {
+//    FILE *fp = fopen(in_stream, "r");
+//    if (!fp) {
+//        return other_error;
+//    }
+//    if (fscanf(fp, "%d", &numVertices) != 1) {
+//        fclose(fp);
+//        return bad_number_of_lines;
+//    }
+//    if (numVertices < 0 || numVertices > MAX_VERTICES) {
+//        fclose(fp);
+//        return bad_number_of_vertices;
+//    }
+//    if (fscanf(fp, "%d", &numEdges) != 1) {
+//        fclose(fp);
+//        return bad_number_of_lines;
+//    }
+//    if (numEdges < 0 || numEdges > numVertices * (numVertices - 1) / 2) {
+//        fclose(fp);
+//        return bad_number_of_edges;
+//    }
+//    int from, to, value;
+//    for (int i = 0; i < numEdges; ++i) {
+//        if (fscanf(fp, "%d %d", &from, &to) != 2) {
+//            fclose(fp);
+//            return bad_number_of_lines;
+//        }
+//        if (from < 0 || to < 0 || from > numVertices || to > numVertices) {
+//            fclose(fp);
+//            return bad_vertex;
+//        }
+//        addEdge(from, to);
+//    }
+//    fclose(fp);
+//    return no_error;
+//}
 
-    printf("Enter the number of edges: ");
-    scanf("%d", &numEdges);
+int readInput(int* numVertices, int* numEdges) {
+
+    if (scanf("%d", numVertices) != 1) {
+
+        return bad_number_of_lines;
+    }
+    if (*numVertices < 0 || *numVertices > MAX_VERTICES) {
+
+        return bad_number_of_vertices;
+    }
+    if (scanf("%d", numEdges) != 1) {
+        return bad_number_of_lines;
+    }
+    if (*numEdges < 0 || *numEdges > *numVertices * (*numVertices - 1) / 2) {
+        return bad_number_of_edges;
+    }
+    int from, to;
+    for (int i = 0; i < *numEdges; ++i) {
+        if (scanf("%d %d", &from, &to) != 2) {
+            return bad_number_of_lines;
+        }
+        if (from < 0 || to < 0 || from > *numVertices || to > *numVertices) {
+
+            return bad_vertex;
+        }
+        addEdge(from, to);
+    }
+    return no_error;
+}
+
+int main() {
+    int numVertices, numEdges;
 
     initializeGraph();
 
-    printf("Enter the edges (vertex u, vertex v):\n");
-    for (i = 0; i < numEdges; i++) {
-        int u, v;
-        scanf("%d%d", &u, &v);
-        addEdge(u, v);
-    }
-
+    readInput(&numVertices, &numEdges);
     int shortestCycleLength = findShortestCycle(numVertices);
 
     if (shortestCycleLength == -1) {
