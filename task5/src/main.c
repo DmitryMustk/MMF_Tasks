@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <limits.h>
 
 #define MAX_VERTICES 5000
-#define INFINITY 999999
+#define INFINITY INT_MAX
 
 int visited[MAX_VERTICES];
 int graph[MAX_VERTICES][MAX_VERTICES];
