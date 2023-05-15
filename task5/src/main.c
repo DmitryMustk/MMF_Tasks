@@ -105,42 +105,48 @@ int findShortestCycle(int numVertices) {
 //    return no_error;
 //}
 
-int readInput(int* numVertices, int* numEdges) {
-
-    if (scanf("%d", numVertices) != 1) {
-
+int readInput(int* numVertices, int* numEdges, const char* in_stream) {
+    FILE* fp = fopen(in_stream, "r");
+    if(!fp)
+        return other_error;
+    if (fscanf(fp, "%d", numVertices) != 1) {
+        fclose(fp);
         return bad_number_of_lines;
     }
     if (*numVertices < 0 || *numVertices > MAX_VERTICES) {
-
+        fclose(fp);
         return bad_number_of_vertices;
     }
-    if (scanf("%d", numEdges) != 1) {
+    if (fscanf(fp, "%d", numEdges) != 1) {
+        fclose(fp);
         return bad_number_of_lines;
     }
     if (*numEdges < 0 || *numEdges > *numVertices * (*numVertices - 1) / 2) {
+        fclose(fp);
         return bad_number_of_edges;
     }
     int from, to;
     for (int i = 0; i < *numEdges; ++i) {
-        if (scanf("%d %d", &from, &to) != 2) {
+        if (fscanf(fp, "%d %d", &from, &to) != 2) {
+            fclose(fp);
             return bad_number_of_lines;
         }
         if (from < 0 || to < 0 || from > *numVertices || to > *numVertices) {
-
+            fclose(fp);
             return bad_vertex;
         }
         addEdge(from, to);
     }
+    fclose(fp);
     return no_error;
 }
 
 int main() {
     int numVertices, numEdges;
-
+    const char* in_stream = "in.txt";
     initializeGraph();
 
-    readInput(&numVertices, &numEdges);
+    readInput(&numVertices, &numEdges, in_stream);
     int shortestCycleLength = findShortestCycle(numVertices);
 
     if (shortestCycleLength == -1) {
