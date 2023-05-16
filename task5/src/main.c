@@ -108,7 +108,7 @@ int readInput(graph_t *graph, const char *in_stream) {
     return no_error;
 }
 
-int printError(error_code error, const char *out_stream) {
+int printError(const error_code error, const char *out_stream) {
     FILE *fp = fopen(out_stream, "w");
     if (!fp)
         return other_error;
@@ -137,15 +137,6 @@ void destroyGraph(graph_t* graph){
 }
 
 int main(void) {
-    //TODO: 1)add destroy_func [DONE]
-    //TODO: 2)make foundCycleLength void [DONE]
-    //TODO: 3)rename graph field to matrix [DONE]
-    //TODO: 4)make 4-5 tescases
-    //TODO: 5)add malloc check
-    //TODO: 6)fix memory leak
-    //TODO: 7)add print res func
-    //TODO: 8)replace args to struct fields
-    //TODO: 9)add consts
     const char *in_stream = "in.txt", *out_stream = "out.txt";
     graph_t graph;
     error_code error = readInput(&graph, in_stream);
