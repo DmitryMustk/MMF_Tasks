@@ -1,106 +1,189 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MAX_VERTICES 5000
+
+int path[MAX_VERTICES];
+int pathIndex = 0;
+
+typedef enum error_code {
+    no_error = 0,
+    other_error,
+    bad_number_of_lines,
+    bad_number_of_vertices,
+    bad_number_of_edges,
+    bad_vertex,
+} error_code;
+
 typedef struct {
+    int **matrix;
+    int *visited;
+    int* commonCands;
+    int PathCounter;
     int numVertices;
     int numEdges;
-    int** adjacencyMatrix;
-} Graph;
+} graph_t;
 
-void initializeGraph(Graph* graph, int numVertices) {
-    graph->numVertices = numVertices;
-    graph->numEdges = 0;
-
-    graph->adjacencyMatrix = (int**)malloc(numVertices * sizeof(int*));
-    int i, j;
-    for (i = 0; i < numVertices; i++) {
-        graph->adjacencyMatrix[i] = (int*)malloc(numVertices * sizeof(int));
-        for (j = 0; j < numVertices; j++) {
-            graph->adjacencyMatrix[i][j] = 0;
+int initializeGraph(graph_t *graph, const int numVertices) {
+    graph->PathCounter = 0;
+    graph->visited = (int *)malloc(numVertices * sizeof(int));
+    if(!graph->visited)
+        return other_error;
+    graph->commonCands = NULL;
+    graph->matrix = (int **)malloc(numVertices * sizeof(int *));
+    if(!graph->matrix)
+        return other_error;
+    for (int i = 0; i < numVertices; i++) {
+        graph->visited[i] = 0;
+        graph->matrix[i] = (int *) malloc(numVertices * sizeof(int));
+        if(!graph->matrix[i])
+            return other_error;
+        for (int j = 0; j < numVertices; j++) {
+            graph->matrix[i][j] = 0;
         }
     }
+    return no_error;
 }
 
-void addEdge(Graph* graph, int source, int destination) {
-    graph->adjacencyMatrix[source][destination] = 1;
-    graph->adjacencyMatrix[destination][source] = 1;
-    graph->numEdges++;
+void addEdge(graph_t *graph, const int u, const int v) {
+    graph->matrix[u][v] = 1;
+    graph->matrix[v][u] = 1;
 }
-
-int isCommonVertex(Graph* graph, int vertex, int sourceVertex, int destinationVertex) {
+void printPath(int path[], int length) {
     int i;
+    for (i = 0; i < length; i++) {
+        printf("%d ", path[i]);
+    }
+    printf("\n");
+}
 
-    for (i = 0; i < graph->numVertices; i++) {
-        if (i != vertex && i != sourceVertex && i != destinationVertex) {
-            if (graph->adjacencyMatrix[sourceVertex][i] == 1 && graph->adjacencyMatrix[i][destinationVertex] == 1) {
-                return 0;
+void findCommonCands(graph_t* graph, int path[], int length){
+    if(graph->commonCands == NULL){
+        graph->commonCands = calloc(graph->numVertices, sizeof(int));
+        if(!graph->commonCands)
+            exit(0);
+        for(int i = 1; i < length - 1; ++i){
+            graph->commonCands[i] = path[i];
+        }
+    }
+    int flag = 0;
+    for(int i = 0; i < graph->numVertices; ++i){
+        for(int j = 1; j < length - 1; ++j){
+            if(graph->commonCands[i] != 0 && graph->commonCands[i] == path[j]) {
+                flag = 1;
+                break;
             }
         }
+        if(graph->commonCands[i] != 0 && !flag)
+            graph->commonCands[i] = 0;
     }
-
-    return 1;
 }
 
-int findCommonVertex(Graph* graph, int sourceVertex, int destinationVertex) {
-    int i;
+void DFS(graph_t* graph, int start, int end) {
+    graph->visited[start] = 1;
+    path[pathIndex++] = start;
 
-    for (i = 0; i < graph->numVertices; i++) {
-        if (i != sourceVertex && i != destinationVertex) {
-            if (graph->adjacencyMatrix[sourceVertex][i] == 1 && graph->adjacencyMatrix[i][destinationVertex] == 1) {
-                if (isCommonVertex(graph, i, sourceVertex, destinationVertex)) {
-                    return i;
-                }
-            }
-        }
-    }
-
-    return -1;
-}
-
-void freeGraph(Graph* graph) {
-    int i;
-    for (i = 0; i < graph->numVertices; i++) {
-        free(graph->adjacencyMatrix[i]);
-    }
-    free(graph->adjacencyMatrix);
-}
-
-int main() {
-    int numVertices, numEdges, i;
-    int sourceVertex, destinationVertex;
-    Graph graph;
-
-    printf("Введите количество вершин в графе: ");
-    scanf("%d", &numVertices);
-
-    initializeGraph(&graph, numVertices);
-
-    printf("Введите количество ребер в графе: ");
-    scanf("%d", &numEdges);
-
-    printf("Введите ребра в формате 'начальная_вершина конечная_вершина':\n");
-    for (i = 0; i < numEdges; i++) {
-        int source, destination;
-        scanf("%d %d", &source, &destination);
-        addEdge(&graph, source, destination);
-    }
-
-    printf("Введите исходную вершину: ");
-    scanf("%d", &sourceVertex);
-
-    printf("Введите целевую вершину: ");
-    scanf("%d", &destinationVertex);
-
-    int commonVertex = findCommonVertex(&graph, sourceVertex, destinationVertex);
-
-    if (commonVertex != -1) {
-        printf("Общая вершина, удовлетворяющая условиям, найдена: %d\n", commonVertex);
+    if (start == end) {
+        printPath(path, pathIndex);
+        findCommonCands(graph, path, pathIndex);
     } else {
-        printf("Общая вершина, удовлетворяющая условиям, не найдена.\n");
+        int i;
+        for (i = 0; i < graph->numVertices; i++) {
+            if (graph->matrix[start][i] == 1 && !graph->visited[i]) {
+                DFS(graph, i, end);
+            }
+        }
     }
 
-    freeGraph(&graph);
+    graph->visited[start] = 0;
+    pathIndex--;
+}
 
+int readInput(graph_t *graph, const char *in_stream) {
+    FILE *fp = fopen(in_stream, "r");
+    if (!fp)
+        return other_error;
+    if (fscanf(fp, "%d", &graph->numVertices) != 1) {
+        fclose(fp);
+        return bad_number_of_lines;
+    }
+    if (graph->numVertices < 0 || graph->numVertices > MAX_VERTICES) {
+        fclose(fp);
+        return bad_number_of_vertices;
+    }
+    if (fscanf(fp, "%d", &graph->numEdges) != 1) {
+        fclose(fp);
+        return bad_number_of_lines;
+    }
+    if (graph->numEdges < 0 || graph->numEdges > graph->numVertices * (graph->numVertices - 1) / 2) {
+        fclose(fp);
+        return bad_number_of_edges;
+    }
+    initializeGraph(graph, graph->numVertices);
+
+    int from, to;
+    for (int i = 0; i < graph->numEdges; ++i) {
+        if (fscanf(fp, "%d %d", &from, &to) != 2) {
+            fclose(fp);
+            return bad_number_of_lines;
+        }
+        if (from < 0 || to < 0 || from > graph->numVertices || to > graph->numVertices) {
+            fclose(fp);
+            return bad_vertex;
+        }
+        addEdge(graph, from, to);
+    }
+    fclose(fp);
+    return no_error;
+}
+
+int printError(const error_code error, const char *out_stream) {
+    FILE *fp = fopen(out_stream, "w");
+    if (!fp)
+        return other_error;
+    if (error == bad_number_of_lines) {
+        fprintf(fp, "bad number of lines");
+    }
+    if (error == bad_number_of_vertices) {
+        fprintf(fp, "bad number of vertices");
+    }
+    if (error == bad_number_of_edges) {
+        fprintf(fp, "bad number of edges");
+    }
+    if (error == bad_vertex) {
+        fprintf(fp, "bad vertex");
+    }
+    fclose(fp);
+    return no_error;
+}
+
+void destroyGraph(graph_t* graph){
+    for (int i = 0; i < graph->numVertices; i++) {
+        free(graph->matrix[i]);
+    }
+    free(graph->commonCands);
+    free(graph->matrix);
+    free(graph->visited);
+}
+
+int main(void) {
+    const char *in_stream = "in.txt", *out_stream = "out.txt";
+    graph_t graph;
+    error_code error = readInput(&graph, in_stream);
+    if (error != no_error) {
+        printError(error, out_stream);
+        destroyGraph(&graph);
+        return 0;
+    }
+    int from, to;
+    printf("Введите две вершины, между которыми нужно найти общую:\n");
+    scanf("%d %d", &from, &to);
+
+    DFS(&graph, from, to);
+    for(int i = 0; i < graph.numVertices; ++i){
+        if(graph.commonCands[i] != 0)
+            printf("%d ", graph.commonCands[i]);
+    }
+    destroyGraph(&graph);
     return 0;
 }
-
