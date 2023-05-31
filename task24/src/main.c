@@ -150,11 +150,14 @@ void testProgram(char formula[]) {
 
     printf("Исходная формула: %s\n", formula);
 
-    removeRedundantParentheses(formula);
+    int len = strlen(formula);
+    char formulaWithoutRedundantParentheses[len + 1];
+    strcpy(formulaWithoutRedundantParentheses, formula);
+    removeRedundantParentheses(formulaWithoutRedundantParentheses);
 
-    printf("Формула без избыточных скобок: %s\n", formula);
+    printf("Формула без избыточных скобок: %s\n", formulaWithoutRedundantParentheses);
 
-    bool equivalent = areEquivalent(formulaCopy, formula);
+    bool equivalent = areEquivalent(formulaCopy, formulaWithoutRedundantParentheses);
 
     if (equivalent) {
         printf("Исходная формула эквивалентна формуле без скобок\n");
