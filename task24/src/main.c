@@ -78,9 +78,6 @@ bool evaluateFormula(char formula[], bool values[]) {
     for (int i = 0; i < strlen(formula); i++) {
         if (formula[i] >= 'A' && formula[i] <= 'Z') {
             stack[++top] = values[formula[i] - 'A'];
-        } else if (formula[i] == '~') {
-            bool operand = stack[top--];
-            stack[++top] = !operand;
         } else if (formula[i] == '^' || formula[i] == 'v') {
             bool operand2 = stack[top--];
             bool operand1 = stack[top--];
@@ -98,66 +95,49 @@ bool evaluateFormula(char formula[], bool values[]) {
 
 // Функция для удаления избыточных скобок из формулы
 void removeRedundantParentheses(char formula[]) {
-    int len = strlen(formula);
-    int openCount = 0;
-    int closeCount = 0;
+    void removeRedundantParentheses(char formula[]) {
+        int len = strlen(formula);
+        bool removed;
 
-    // Подсчет количества открывающих и закрывающих скобок
-    for (int i = 0; i < len; i++) {
-        if (formula[i] == '(') {
-            openCount++;
-        } else if (formula[i] == ')') {
-            closeCount++;
-        }
-    }
+        do {
+            removed = false;
+            int openIndex = -1;
+            int closeIndex = -1;
 
-    // Удаление избыточных скобок
-    while (openCount > closeCount) {
-        for (int i = 0; i < len; i++) {
-            if (formula[i] == '(') {
-                formula[i] = ' ';
-                openCount--;
-                break;
+            // Поиск пары скобок
+            for (int i = 0; i < len; i++) {
+                if (formula[i] == '(') {
+                    openIndex = i;
+                } else if (formula[i] == ')') {
+                    closeIndex = i;
+                    break;
+                }
             }
-        }
-    }
 
-    while (closeCount > openCount) {
-        for (int i = len - 1; i >= 0; i--) {
-            if (formula[i] == ')') {
-                formula[i] = ' ';
-                closeCount--;
-                break;
+            if (openIndex != -1 && closeIndex != -1) {
+                // Удаление пары скобок
+                memmove(&formula[openIndex], &formula[openIndex + 1], (closeIndex - openIndex - 1) * sizeof(char));
+                memmove(&formula[closeIndex - 1], &formula[closeIndex], (len - closeIndex) * sizeof(char));
+                len -= 2;
+                removed = true;
             }
-        }
+        } while (removed);
     }
-
-    // Удаление пробелов
-    int j = 0;
-    for (int i = 0; i < len; i++) {
-        if (formula[i] != ' ') {
-            formula[j] = formula[i];
-            j++;
-        }
-    }
-    formula[j] = '\0';
 }
 
 // Функция для проверки программы
 void testProgram(char formula[]) {
     char formulaCopy[100];
-    strcpy(formulaCopy, formula);
+    strncpy(formulaCopy, formula, sizeof(formulaCopy) - 1);
+    formulaCopy[sizeof(formulaCopy) - 1] = '\0';
 
     printf("Исходная формула: %s\n", formula);
 
-    int len = strlen(formula);
-    char formulaWithoutRedundantParentheses[len + 1];
-    strcpy(formulaWithoutRedundantParentheses, formula);
-    removeRedundantParentheses(formulaWithoutRedundantParentheses);
+    removeRedundantParentheses(formula);
 
-    printf("Формула без избыточных скобок: %s\n", formulaWithoutRedundantParentheses);
+    printf("Формула без избыточных скобок: %s\n", formula);
 
-    bool equivalent = areEquivalent(formulaCopy, formulaWithoutRedundantParentheses);
+    bool equivalent = areEquivalent(formulaCopy, formula);
 
     if (equivalent) {
         printf("Исходная формула эквивалентна формуле без скобок\n");
@@ -170,7 +150,7 @@ void testProgram(char formula[]) {
 
 int main() {
     // Тестовые примеры
-    testProgram("A OR (B AND C)");
+    testProgram("(A AND B) AND C");
     testProgram("((A AND B) OR C)");
     testProgram("(A OR B) AND C");
     testProgram("(((A)))");

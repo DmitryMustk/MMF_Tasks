@@ -49,7 +49,7 @@ void addEdge(graph_t *graph, const int u, const int v) {
     graph->matrix[u][v] = 1;
     graph->matrix[v][u] = 1;
 }
-void printPath(int path[], int length) {
+void printPath(int length) {
     int i;
     for (i = 0; i < length; i++) {
         printf("%d ", path[i]);
@@ -57,7 +57,7 @@ void printPath(int path[], int length) {
     printf("\n");
 }
 
-void findCommonCands(graph_t* graph, int path[], int length){
+void findCommonCands(graph_t* graph, int length){
     if(graph->commonCands == NULL){
         graph->commonCands = calloc(graph->numVertices, sizeof(int));
         if(!graph->commonCands)
@@ -81,11 +81,13 @@ void findCommonCands(graph_t* graph, int path[], int length){
 
 void DFS(graph_t* graph, int start, int end) {
     graph->visited[start] = 1;
+    if(pathIndex - 1 == MAX_VERTICES)
+        exit(0);
     path[pathIndex++] = start;
 
     if (start == end) {
-        printPath(path, pathIndex);
-        findCommonCands(graph, path, pathIndex);
+        printPath(pathIndex);
+        findCommonCands(graph, pathIndex);
     } else {
         int i;
         for (i = 0; i < graph->numVertices; i++) {
